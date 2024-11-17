@@ -1,24 +1,27 @@
 import math
 from tabulate import tabulate
 import os
+import bisect
+
+import ProcessControlBlock as PCB
 
 # Variables globales
 memory_size = 0  # Tamaño de la memoria en KB
 os_size = 0  # Tamaño del SO en KB
 frame_size = 0  # Tamaño de cada frame en KB
-num_frames = 0  # Número de frames
+num_frames_max = 0  # Número de frames maximo por proceso
 frames = []  # Lista de frames (0 = libre, 's' = asignado al SO, 'u' = asignado al usuario)
-processes = {}  # Diccionario para almacenar los procesos
+processesControlBlock = []
 
 def clearTerminal():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-def ingresarDatosMemoria():
-    global memory_size, os_size, frame_size, num_frames, frames
+def enterMemoryData():
+    global memory_size, os_size, frame_size, num_frames_max, frames, processesControlBlock
     memory_size = int(input("Ingrese el tamaño de la memoria real en KB: "))
     os_size = int(input("Ingrese el tamaño del SO en KB: "))
     frame_size = int(input("Ingrese el tamaño de cada frame en KB: "))
-    num_frames = int(input("Ingrese la cantidad de frames a asignar a todos los procesos: "))
+    num_frames_max = int(input("Ingrese la cantidad de frames a asignar a todos los procesos: "))
     
     # Inicializar los frames (0 = libre, 's' = asignado al SO, 'u' = asignado al usuario)
     frames_os = math.ceil(os_size / frame_size)
@@ -26,8 +29,8 @@ def ingresarDatosMemoria():
     frames = ['s'] * frames_os + ['0'] * frames_user
     print(f"Memoria configurada con {memory_size} KB, tamaño de frame {frame_size} KB.")
 
-def mostrar_tabla_frames():
-    # Usar tabulate para mostrar la tabla
+def showFrameTable():
+    # Use tabulate to display the frame table
     headers = ["Frame", "Estado", "Asignado a"]
     
     rows = []
@@ -39,51 +42,50 @@ def mostrar_tabla_frames():
     print("\nTabla de Frames:")
     print(tabulate(rows, headers=headers, tablefmt="grid"))
 
-def max_frames_libres_contiguos():
-    max_free_frames = 0
-    free_frames = 0
+def searchProcess(pid):
+    #processesControlBlock is sorted
+    left = 0
+    right = len(processesControlBlock) - 1
 
-    for i, frame in enumerate(frames):
-        if(frame == '0'):   
-            free_frames += 1
+    while left <= right:
+        mid = (left + right) // 2
 
+        # Compare the PID with the middle element
+        if processesControlBlock[mid].id == pid:
+            return True
+        elif processesControlBlock[mid].id < pid:
+            left = mid + 1
         else:
-            if(free_frames > max_free_frames):
-                max_free_frames = free_frames
+            right = mid - 1
 
-            free_frames = 0
-    
-    return max_free_frames
-
-def hay_frames_libres_contiguos(cant_frames):
-    free_frames = 0
-
-    for frame in enumerate(frames):
-        if(frame == '0'):   
-            free_frames += 1
-            if(free_frames >= cant_frames):
-                return True
-
-
-        else:
-            free_frames = 0
-    
     return False
 
-def ingresar_proceso():
-    not_enought_space = True
+def insertSorted(list, new_object):
+    # Extract the key for sorting (id in this case)
+    keys = [element.id for element in list]
+    # Find the position to insert using bisect
+    position = bisect.bisect_left(keys, new_object.id)
+    # Insert the object at the correct position
+    list.insert(position, new_object)
 
-    while(not_enought_space):
+def addProcess():
+    notAvailableId = True
+
+    while(notAvailableId):
         pid = int(input("\nIngrese el identificador del proceso (entero): "))
-        size = int(input("Ingrese el tamaño del proceso en KB: "))
-        
-        if(not hay_frames_libres_contiguos(size)):
-            print("No hay suficiente espacio libre para asignarlo a memoria")
-        else:
-            not_enought_space = False
 
-    processes[pid] = {'size': size, 'pages': []}
-    print(f"Proceso {pid} de tamaño {size} KB ingresado.")
+        if(searchProcess(pid)):
+            print("Este indetificador ya existe, ingrese uno nuevo")
+        else:
+            notAvailableId = False
+
+    size = int(input("Ingrese el tamaño del proceso en KB: "))
+
+    processCB = PCB.ProcessControlBlock(pid,size,frame_size)
+
+    insertSorted(processesControlBlock,processCB)
+
+    processCB.addToMemory(frames,num_frames_max)
 
 def mostrar_menu():
     while True:
@@ -99,13 +101,13 @@ def mostrar_menu():
         opcion = input("Seleccione una opción: ")
         
         if opcion == '1':
-            ingresarDatosMemoria()
+            enterMemoryData()
             pass
         elif opcion == '2':
-            mostrar_tabla_frames()
+            showFrameTable()
             pass
         elif opcion == '3':
-            # Llamar a la función para ingresar un proceso
+            addProcess()
             pass
         elif opcion == '4':
             # Llamar a la función para mostrar la tabla de páginas
