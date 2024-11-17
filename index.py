@@ -17,22 +17,53 @@ processesWaiting = [] #Procesos que tienen al menos una pagina que necesita ser 
 def clearTerminal():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-def enterMemoryData():
+def enterMemoryData(opt):
     global memory_size, os_size, frame_size, num_frames_max, frames, processesControlBlock, processesWaiting
-    memory_size = int(input("Ingrese el tamaño de la memoria real en KB (0 = atras): "))
 
-    if(memory_size == 0):
-        return -1
-    
-    os_size = int(input("Ingrese el tamaño del SO en KB: "))
-    frame_size = int(input("Ingrese el tamaño de cada frame en KB: "))
-    num_frames_max = int(input("Ingrese la cantidad de frames a asignar a todos los procesos: "))
+    if(opt == 'no back option'):
+        memory_size = int(get_positive_integer("Ingrese el tamaño de la memoria real en KB: "))
+    else:
+        memory_size = int(get_positive_integer_with_cero("Ingrese el tamaño de la memoria real en KB (0 = atras): "))
+        if(memory_size == 0):
+            return -1
+        
+    os_size = get_positive_integer("Ingrese el tamaño del SO en KB: ")
+    frame_size = get_positive_integer("Ingrese el tamaño de cada frame en KB: ")
+    num_frames_max = get_positive_integer("Ingrese la cantidad de frames a asignar a todos los procesos: ")
     
     # Inicializar los frames (0 = libre, 's' = asignado al SO, 'u' = asignado al usuario)
     frames_os = math.ceil(os_size / frame_size)
     frames_user = (memory_size - os_size) // frame_size
     frames = ['s'] * frames_os + ['0'] * frames_user
-    print(f"Memoria configurada con {memory_size} KB, tamaño de frame {frame_size} KB.")
+    
+    print(f"\nMemoria configurada con {memory_size} KB, tamaño de frame {frame_size} KB")
+    print(f"Cantidad maxima asignada a cada frame: {num_frames_max} KB")
+
+def get_positive_integer(prompt):
+    while True:
+        try:
+            value = int(input(prompt))
+            if value > 0:
+                return value
+            print("\nEl valor debe ser un número entero positivo. Intente nuevamente")
+        except ValueError:
+            print("\nEntrada inválida. Por favor, ingrese un número entero")
+
+def get_positive_integer_with_cero(prompt):
+    while True:
+        try:
+            value = int(input(prompt))
+            if value >= 0:
+                return value
+            print("\nEl valor debe ser un número entero positivo. Intente nuevamente")
+        except ValueError:
+            print("\nEntrada inválida. Por favor, ingrese un número entero")
+
+def verifyMemoryData():
+    if(memory_size == 0 or os_size == 0 or frame_size == 0 or num_frames_max == 0):
+        print("\nPrimero debe ingresar la informacion de la memoria (opcion 1)\n")
+
+        enterMemoryData('no back option')
 
 def showFrameTable():
     # Use tabulate to display the frame table
@@ -48,6 +79,8 @@ def showFrameTable():
     print(tabulate(rows, headers=headers, tablefmt="grid"))
 
 def searchProcess(pid):
+    verifyMemoryData()
+
     #processesControlBlock is sorted
     left = 0
     right = len(processesControlBlock) - 1
@@ -74,10 +107,12 @@ def insertSorted(list, new_object):
     list.insert(position, new_object)
 
 def addProcess():
+    verifyMemoryData()
+
     notAvailableId = True
 
     while(notAvailableId):
-        pid = int(input("\nIngrese el identificador del proceso (0 = atras): "))
+        pid = int(get_positive_integer_with_cero("\nIngrese el identificador del proceso (0 = atras): "))
 
         if(pid == 0):
             return -1
@@ -87,7 +122,7 @@ def addProcess():
         else:
             notAvailableId = False
 
-    size = int(input("Ingrese el tamaño del proceso en KB: "))
+    size = int(get_positive_integer("Ingrese el tamaño del proceso en KB: "))
 
     processCB = PCB.ProcessControlBlock(pid,size,frame_size)
 
@@ -104,7 +139,7 @@ def showPageTable():
     notValidId = True
 
     while(notValidId):
-        pid = int(input("\nIngrese el identificador del proceso (0 = atras): "))
+        pid = int(get_positive_integer_with_cero("\nIngrese el identificador del proceso (0 = atras): "))
 
         if(pid == 0):
             return -1
@@ -164,10 +199,12 @@ def addWaitingProcesses():
                     break  # Exit if no processes are waiting
 
 def deleteProcess():
+    verifyMemoryData()
+
     notValidId = True
 
     while(notValidId):
-        pid = int(input("\nIngrese el identificador del proceso (0 = atras): "))
+        pid = int(get_positive_integer_with_cero("\nIngrese el identificador del proceso (0 = atras): "))
 
         if(pid == 0):
             return -1
@@ -214,7 +251,7 @@ def showMenu():
         opt = input("Seleccione una opción: ")
         
         if opt == '1':
-            enterMemoryData()
+            enterMemoryData('')
             pass
         elif opt == '2':
             showFrameTable()
