@@ -51,20 +51,20 @@ def searchProcess(pid):
         mid = (left + right) // 2
 
         # Compare the PID with the middle element
-        if processesControlBlock[mid].id == pid:
-            return True
-        elif processesControlBlock[mid].id < pid:
+        if processesControlBlock[mid].pid == pid:
+            return mid
+        elif processesControlBlock[mid].pid < pid:
             left = mid + 1
         else:
             right = mid - 1
 
-    return False
+    return -1
 
 def insertSorted(list, new_object):
     # Extract the key for sorting (id in this case)
-    keys = [element.id for element in list]
+    keys = [element.pid for element in list]
     # Find the position to insert using bisect
-    position = bisect.bisect_left(keys, new_object.id)
+    position = bisect.bisect_left(keys, new_object.pid)
     # Insert the object at the correct position
     list.insert(position, new_object)
 
@@ -74,7 +74,7 @@ def addProcess():
     while(notAvailableId):
         pid = int(input("\nIngrese el identificador del proceso (entero): "))
 
-        if(searchProcess(pid)):
+        if(searchProcess(pid) != -1):
             print("Este indetificador ya existe, ingrese uno nuevo")
         else:
             notAvailableId = False
@@ -87,38 +87,70 @@ def addProcess():
 
     processCB.addToMemory(frames,num_frames_max)
 
-def mostrar_menu():
+def showPageTable():
+    notValidId = True
+
+    while(notValidId):
+        pid = int(input("\nIngrese el identificador del proceso (entero): "))
+
+        index = searchProcess(pid)
+        if(index == -1):
+            print("Este indetificador no existe, vuelva a intentarlo")
+        else:
+            notValidId = False
+    
+    processControlBlock = processesControlBlock[index]
+
+    #Use tabulate to display the page Use tabulate to display the frame table
+    headers = ["Pagina", "Frame", "Bit Validez"]
+    
+    rows = []
+    for i, pag in enumerate(processControlBlock.pageTable):
+        numPage = i
+        numFrame = pag[0] if pag[0] != -1 else "N/A"
+        vBit = pag[1]
+        rows.append([numPage, numFrame, vBit])
+
+    print("\nTabla de Frames:")
+    print(tabulate(rows, headers=headers, tablefmt="grid"))
+    
+
+def showMenu():
     while True:
         print("\n----- MENÚ DE ADMINISTRACIÓN DE MEMORIA -----")
         print("1) Ingresar datos de memoria")
         print("2) Mostrar tabla de frames")
         print("3) Ingresar un proceso")
-        print("4) Mostrar tabla de páginas")
-        print("5) Simular acceso a páginas con LRU")
-        print("6) Mostrar dirección física de una dirección lógica")
+        print("4) Eliminar un proceso")
+        print("5) Mostrar tabla de páginas")
+        print("6) Simular acceso a páginas con LRU")
+        print("7) Mostrar dirección física de una dirección lógica")
         print("0) Salir")
         
-        opcion = input("Seleccione una opción: ")
+        opt = input("Seleccione una opción: ")
         
-        if opcion == '1':
+        if opt == '1':
             enterMemoryData()
             pass
-        elif opcion == '2':
+        elif opt == '2':
             showFrameTable()
             pass
-        elif opcion == '3':
+        elif opt == '3':
             addProcess()
             pass
-        elif opcion == '4':
-            # Llamar a la función para mostrar la tabla de páginas
+        elif opt == '4':
+            # Eliminar un proceso
             pass
-        elif opcion == '5':
+        elif opt == '5':
+            showPageTable()
+            pass
+        elif opt == '6':
             # Llamar a la función para simular el acceso a páginas con LRU
             pass
-        elif opcion == '6':
+        elif opt == '7':
             # Llamar a la función para mostrar la dirección física
             pass
-        elif opcion == '0':
+        elif opt == '0':
             print("Saliendo del programa...")
             break
         else:
@@ -126,6 +158,6 @@ def mostrar_menu():
 
 
 def main() -> int:
-    mostrar_menu()
+    showMenu()
 
 main()

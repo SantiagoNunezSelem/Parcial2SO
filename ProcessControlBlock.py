@@ -3,11 +3,13 @@ import math
 
 
 class ProcessControlBlock:
-    def __init__(self,id,size,frameSize):
-        self.id = id
+    def __init__(self,pid,size,frameSize):
+        self.pid = pid
         self.size = size
         self.pageTable = [[-1,'i'] for _ in range(math.ceil(size / frameSize))]   #List of lists. First element of the internal list indicates if there is or there is not a referece to a frame. Second element is the validation bit. The index of the main list indicates the page
 
+    def __repr__(self):
+        return f"ProcessControlBlock(pid={self.pid}, size='{self.size}', pageTable={self.pageTable})"
     
     def addToMemory(self, memory, maxFrames):
         frameNumber = 0
