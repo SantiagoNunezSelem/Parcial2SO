@@ -12,13 +12,18 @@ frame_size = 0  # Tamaño de cada frame en KB
 num_frames_max = 0  # Número de frames maximo por proceso
 frames = []  # Lista de frames (0 = libre, 's' = asignado al SO, 'u' = asignado al usuario)
 processesControlBlock = []
+processesWaiting = [] #Procesos que tienen al menos una pagina que necesita ser ingresada en memoria
 
 def clearTerminal():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 def enterMemoryData():
-    global memory_size, os_size, frame_size, num_frames_max, frames, processesControlBlock
-    memory_size = int(input("Ingrese el tamaño de la memoria real en KB: "))
+    global memory_size, os_size, frame_size, num_frames_max, frames, processesControlBlock, processesWaiting
+    memory_size = int(input("Ingrese el tamaño de la memoria real en KB (0 = atras): "))
+
+    if(memory_size == 0):
+        return -1
+    
     os_size = int(input("Ingrese el tamaño del SO en KB: "))
     frame_size = int(input("Ingrese el tamaño de cada frame en KB: "))
     num_frames_max = int(input("Ingrese la cantidad de frames a asignar a todos los procesos: "))
@@ -72,8 +77,11 @@ def addProcess():
     notAvailableId = True
 
     while(notAvailableId):
-        pid = int(input("\nIngrese el identificador del proceso (entero): "))
+        pid = int(input("\nIngrese el identificador del proceso (0 = atras): "))
 
+        if(pid == 0):
+            return -1
+    
         if(searchProcess(pid) != -1):
             print("Este indetificador ya existe, ingrese uno nuevo")
         else:
@@ -87,11 +95,19 @@ def addProcess():
 
     processCB.addToMemory(frames,num_frames_max)
 
+    # If the process is waiting to be added to memory, add it to the waitingProcesses list 
+    # (some pages might still be waiting to be added, not all)
+    if(processCB.hasPagesWaiting(num_frames_max)):
+        processesWaiting.append(processCB)
+
 def showPageTable():
     notValidId = True
 
     while(notValidId):
-        pid = int(input("\nIngrese el identificador del proceso (entero): "))
+        pid = int(input("\nIngrese el identificador del proceso (0 = atras): "))
+
+        if(pid == 0):
+            return -1
 
         index = searchProcess(pid)
         if(index == -1):
@@ -113,6 +129,74 @@ def showPageTable():
 
     print("\nTabla de Frames:")
     print(tabulate(rows, headers=headers, tablefmt="grid"))
+
+def addWaitingProcesses():
+    # Verify if there are processes waiting to be added to memory
+    if len(processesWaiting) > 0:
+
+        # Iterate over memory frames to find an empty space
+        for frameIndex, frame in enumerate(frames):
+            if frame == '0':  # Check for an empty frame
+
+                # If there are processes waiting, pick the first one
+                if len(processesWaiting) > 0:
+                    process = processesWaiting[0]
+                    framesNumber = process.countFrames()
+
+                    # Iterate over the process's page table to find an unassigned page
+                    for pageIndex, page in enumerate(process.pageTable):
+                        if framesNumber >= num_frames_max:
+                            break  # Stop if maximum frames for the process are assigned
+
+                        if page[1] == 'i':  # Check if the page is not yet assigned
+                            # Assign the page to the memory frame
+                            page[0] = frameIndex 
+                            page[1] = 'v'
+                            frames[frameIndex] = 'u'
+                            print(f'Pagina de proceso PID:{process.pid} asignada a frame en memoria')
+                            break  # Exit page table loop after assigning one page
+
+                    # If all pages of the process are assigned, remove it from the waiting list
+                    if all(p[1] == 'v' for p in process.pageTable):
+                        processesWaiting.pop(0)
+
+                else:
+                    break  # Exit if no processes are waiting
+
+def deleteProcess():
+    notValidId = True
+
+    while(notValidId):
+        pid = int(input("\nIngrese el identificador del proceso (0 = atras): "))
+
+        if(pid == 0):
+            return -1
+
+        index = searchProcess(pid)
+        if(index == -1):
+            print("Este indetificador no existe, vuelva a intentarlo")
+        else:
+            notValidId = False
+    
+    #Get numbers of frames in memory to delete them
+    numberOfFrames = []
+    for element in processesControlBlock[index].pageTable:
+        if(element[1] == 'v'):                                  #Verify content with valid bit
+            numberOfFrames.append(element[0])
+
+    del processesControlBlock[index]    #delete the process in the processesControlBlock list
+
+    for i,process in enumerate(processesWaiting):
+        if(process.pid == pid):
+            del processesWaiting[i]     #delete the process in the processesWaiting list
+
+    for index in numberOfFrames:
+        frames[index] = '0'
+
+    print("\n--- Proceso eliminado con exito ---")
+
+    #Add processes waiting to be added
+    addWaitingProcesses()
     
 
 def showMenu():
@@ -121,8 +205,8 @@ def showMenu():
         print("1) Ingresar datos de memoria")
         print("2) Mostrar tabla de frames")
         print("3) Ingresar un proceso")
-        print("4) Eliminar un proceso")
-        print("5) Mostrar tabla de páginas")
+        print("4) Mostrar tabla de páginas de un proceso")
+        print("5) Eliminar un proceso")
         print("6) Simular acceso a páginas con LRU")
         print("7) Mostrar dirección física de una dirección lógica")
         print("0) Salir")
@@ -139,10 +223,10 @@ def showMenu():
             addProcess()
             pass
         elif opt == '4':
-            # Eliminar un proceso
+            showPageTable()
             pass
         elif opt == '5':
-            showPageTable()
+            deleteProcess()
             pass
         elif opt == '6':
             # Llamar a la función para simular el acceso a páginas con LRU

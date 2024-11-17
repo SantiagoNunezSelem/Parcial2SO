@@ -1,7 +1,5 @@
 import math
 
-
-
 class ProcessControlBlock:
     def __init__(self,pid,size,frameSize):
         self.pid = pid
@@ -38,5 +36,24 @@ class ProcessControlBlock:
                 print(f"Cuando se liberen frames se asignaran los {len(self.pageTable)-frameNumber} frames pendientes de forma automatica")
             else:
                 print(f"Se pudo asignar {frameNumber} frames del proceso (max frames: {maxFrames})")
-                print(f"Cuando se liberen frames se asignaran los {maxFrames-frameNumber} frames pendientes de forma automatica")                
+                print(f"Cuando se liberen frames se asignaran los {maxFrames-frameNumber} frames pendientes de forma automatica")
+
+    def hasPagesWaiting(self, maxFrames):
+        countFrames = self.countFrames()
+        
+        if(len(self.pageTable) < maxFrames):
+            return countFrames < len(self.pageTable)
+        else:
+            return countFrames < maxFrames
+        
+    def countFrames(self):
+        countFrames = 0
+
+        for page in self.pageTable:
+                if(page[1] == 'v'):
+                    countFrames += 1
+        
+        return countFrames
+            
+            
 
