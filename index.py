@@ -1,9 +1,17 @@
 import math
-from tabulate import tabulate
 import os
 import bisect
-
 import ProcessControlBlock as PCB
+
+#Use or install automatically 'tabulate'
+try:
+    from tabulate import tabulate
+except ImportError:
+    import subprocess
+    import sys
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'tabulate'])
+    from tabulate import tabulate
+
 
 # Variables globales
 memory_size = 0  # Tamaño de la memoria en KB
