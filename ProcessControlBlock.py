@@ -1,10 +1,10 @@
 import math
-
+from tabulate import tabulate
 class ProcessControlBlock:
     def __init__(self,pid,size,frameSize):
         self.pid = pid
         self.size = size
-        self.pageTable = [[-1,'i'] for _ in range(math.ceil(size / frameSize))]   #List of lists. First element of the internal list indicates if there is or there is not a referece to a frame. Second element is the validation bit. The index of the main list indicates the page
+        self.pageTable = [[-1,'i'] for _ in range(math.ceil(size / frameSize))]   #List of lists. First element of the internal list indicates the reference to a frame. Second element is the validation bit. The index of the main list indicates the page
 
     def __repr__(self):
         return f"ProcessControlBlock(pid={self.pid}, size='{self.size}', pageTable={self.pageTable})"
@@ -54,6 +54,78 @@ class ProcessControlBlock:
                     countFrames += 1
         
         return countFrames
+    
+    def getPageTableFrames(self):
+        tableFrames = []
+        for frame in self.pageTable:
+            if(frame[1] == 'v'):
+                tableFrames.append(frame)
+        
+        return tableFrames
+    
+    def getFramesNumbers(self):
+        framesNumbers = []
+        for frame in self.pageTable:
+            if(frame[1] == 'v'):
+                framesNumbers.append(frame[0])
+
+        return framesNumbers
+
+    def lru(self, series):
+        tableFrames = self.getPageTableFrames()
+        framesNumbers = self.getFramesNumbers()
+        lastUsed = [page.copy() for page in self.pageTable]
+        displayTable = [[f"Frame {frame[0]}"] for frame in tableFrames]
+        
+        for pageNumber in series:
+            if(self.pageTable[pageNumber][1] == 'v'):
+                # Si la página en la pageTable está relacionada con un frame, agrégala como la más recientemente usada
+                frameRelated = self.pageTable[pageNumber][0]
+                for page in lastUsed:
+                    if(page[0] == frameRelated):
+                        lastUsed.remove(page)
+                        lastUsed.append(page.copy())  # Crear una copia del elemento antes de añadirlo de nuevo
+                        break
+            else:
+                # Si la página no está en memoria, eliminar la página menos recientemente usada y agregarla
+                for page in lastUsed:
+                    if(page[1] == 'v'):
+                        # Encontrar la menos usada
+                        leastPageUsed = page
+                        lastUsed.remove(page)
+                        break
+                
+                frameLeastProcess = leastPageUsed[0]
+                addProcess = [frameLeastProcess, 'v']
+
+                lastUsed.append(addProcess)  # Agregar la nueva página
+
+                # Eliminar el frame de la página en memoria y agregarlo a la nueva página
+                for page in self.pageTable:
+                    if(page[0] == frameLeastProcess):
+                        page[0] = -1
+                        page[1] = 'i'
+
+                self.pageTable[pageNumber][0] = frameLeastProcess
+                self.pageTable[pageNumber][1] = 'v'
+    
+            count = 0
+            for f in framesNumbers:
+                for i,page in enumerate(self.pageTable):
+                    if page[0] == f:
+                        displayTable[count].append(i)
+                        count += 1
+                        break
+        
+        headers = ["-"]
+        for i in range(0,len(series)):
+            headers.append(series[i])
+        
+        print(tabulate(displayTable, headers=headers, tablefmt="grid"))
+        
+
+
+
             
             
 

@@ -79,8 +79,6 @@ def showFrameTable():
     print(tabulate(rows, headers=headers, tablefmt="grid"))
 
 def searchProcess(pid):
-    verifyMemoryData()
-
     #processesControlBlock is sorted
     left = 0
     right = len(processesControlBlock) - 1
@@ -234,6 +232,101 @@ def deleteProcess():
 
     #Add processes waiting to be added
     addWaitingProcesses()
+
+def getProcessForLRU():
+    verifyMemoryData()
+
+    print("\nSerie: 1 2 3 4 2 5 6 3 7 5 8")
+
+    notValidId = True
+
+    while(notValidId):
+        pid = int(get_positive_integer_with_cero("\nIngrese el identificador del proceso (0 = atras): "))
+
+        if(pid == 0):
+            return -1
+
+        index = searchProcess(pid)
+        if(index == -1):
+            print("Este indetificador no existe, vuelva a intentarlo")
+        else:
+            if(len(processesControlBlock[index].pageTable) < 8):
+                print("El proceso seleccionado debe tener al menos 8 paginas")
+            else:
+                notValidId = False
+    
+    series = [1,2,3,4,2,5,6,3,7,5,8]
+
+    processesControlBlock[index].lru(series)
+
+def validateBinaryAddress(address, expected_length):
+    if not all(bit in '01' for bit in address):
+        print("Dirección binaria inválida. Debe contener solo 0s y 1s")
+        return False
+    if len(address) != expected_length:
+        print(f"Dirección binaria incorrecta. Debe tener {expected_length} bits")
+        return False
+    return True
+
+def displayPhysicalAddress():
+    verifyMemoryData()
+
+    offsetBits = math.ceil(math.log2(frame_size * 1024))
+    pageBits = math.ceil(math.log2(memory_size * 1024))
+
+    print("\nBits desplazamiento:",offsetBits)
+    print("Bits pagina:",pageBits)
+
+    notValidId = True
+
+    while(notValidId):
+        pid = int(get_positive_integer_with_cero("\nIngrese el identificador del proceso (0 = atras): "))
+
+        if(pid == 0):
+            return -1
+
+        index = searchProcess(pid)
+        if(index == -1):
+            print("Este indetificador no existe, vuelva a intentarlo")
+        else:
+            notValidId = False
+
+    typeAddress = int(input("Seleccione el tipo de dirección (1: Binario, 2: Hexadecimal): "))
+
+    if typeAddress == 1:
+        logAddr = input("Ingrese la dirección lógica (binario):")
+        if not validateBinaryAddress(logAddr, offsetBits + pageBits):
+            return
+    elif typeAddress == 2:
+        hexAddr = input("Ingrese la dirección lógica (hexadecimal):")
+        logAddr = bin(int(hexAddr, 16))[2:]     # Convierte hexadecimal a binario y elimina el prefijo '0b'
+        if not validateBinaryAddress(logAddr, offsetBits + pageBits):
+            return
+    else:
+        print("Opción de tipo de dirección no válida.")
+        return
+
+    logAddr = logAddr.zfill(pageBits + offsetBits)
+
+    logAddrOffsetBits = logAddr[offsetBits:]     #Get the last n bits of 
+    logAddrPageBits = logAddr[:offsetBits]       #Get the first n bits of 
+    
+    print('Bits desplazamiento:',logAddrOffsetBits)
+    print('Bits pagina:',logAddrPageBits)
+
+    decimalOffset = int(logAddrPageBits)
+    
+    frameNumber = processesControlBlock[index].pageTable[decimalOffset]
+
+    frameBinary = bin(frameNumber)[2:].zfill(pageBits)  # Convert to binary and pad with zeros
+    physicalAddr = frameBinary + logAddrOffsetBits  # pysicalAddress = frame + offset
+
+    # Convert pyshicalAddr to hex
+    physicalAddrDecimal = int(physicalAddr, 2)
+    physicalAddrHex = hex(physicalAddrDecimal)
+
+    print(f"Dirección física en binario: {physicalAddr}")
+    print(f"Dirección física en hexadecimal: {physicalAddrHex}")
     
 
 def showMenu():
@@ -266,10 +359,10 @@ def showMenu():
             deleteProcess()
             pass
         elif opt == '6':
-            # Llamar a la función para simular el acceso a páginas con LRU
+            getProcessForLRU()
             pass
         elif opt == '7':
-            # Llamar a la función para mostrar la dirección física
+            displayPhysicalAddress()
             pass
         elif opt == '0':
             print("Saliendo del programa...")
