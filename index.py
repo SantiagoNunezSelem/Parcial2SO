@@ -33,7 +33,7 @@ def enterMemoryData(opt):
     
     # Inicializar los frames (0 = libre, 's' = asignado al SO, 'u' = asignado al usuario)
     frames_os = math.ceil(os_size / frame_size)
-    frames_user = (memory_size - os_size) // frame_size
+    frames_user = math.ceil((memory_size - os_size) / frame_size)
     frames = ['s'] * frames_os + ['0'] * frames_user
     
     print(f"\nMemoria configurada con {memory_size} KB, tamaño de frame {frame_size} KB")
@@ -228,9 +228,10 @@ def deleteProcess():
     for index in numberOfFrames:
         frames[index] = '0'
 
-    print("\n--- Proceso eliminado con exito ---")
+    print("\n--- Proceso Eliminado con Exito ---")
 
     #Add processes waiting to be added
+    print("\n--- Añadir Paginas de Procesos en Espera ---")
     addWaitingProcesses()
 
 def getProcessForLRU():
@@ -251,12 +252,22 @@ def getProcessForLRU():
             print("Este indetificador no existe, vuelva a intentarlo")
         else:
             if(len(processesControlBlock[index].pageTable) < 8):
-                print("El proceso seleccionado debe tener al menos 8 paginas")
+                print("El proceso seleccionado debe tener al menos 8 paginas (serie del parcial: 8 paginas)")
             else:
                 notValidId = False
     
     series = [1,2,3,4,2,5,6,3,7,5,8]
 
+    while(True):
+        print("\nLos cambios se van a ver reflejados en memoria")
+        response = str(input("Desea continuar? (0 = no, 1 = si) "))
+        if(response == '0'):
+            return
+        if(response == '1'):
+            break
+        else:
+            print("\nError, valor invalido")
+        
     processesControlBlock[index].lru(series)
 
 def validateBinaryAddress(address, expected_length):
@@ -272,7 +283,7 @@ def displayPhysicalAddress():
     verifyMemoryData()
 
     offsetBits = math.ceil(math.log2(frame_size * 1024))
-    pageBits = math.ceil(math.log2(memory_size * 1024))
+    pageBits = math.ceil(math.log2(memory_size / frame_size))
 
     print("\nBits desplazamiento:",offsetBits)
     print("Bits pagina:",pageBits)
@@ -308,8 +319,8 @@ def displayPhysicalAddress():
 
     logAddr = logAddr.zfill(pageBits + offsetBits)
 
-    logAddrOffsetBits = logAddr[offsetBits:]     #Get the last n bits of 
-    logAddrPageBits = logAddr[:offsetBits]       #Get the first n bits of 
+    logAddrOffsetBits = logAddr[:offsetBits]     #Get the last n bits of 
+    logAddrPageBits = logAddr[offsetBits:]       #Get the first n bits of 
     
     print('Bits desplazamiento:',logAddrOffsetBits)
     print('Bits pagina:',logAddrPageBits)
@@ -337,7 +348,7 @@ def showMenu():
         print("3) Ingresar un proceso")
         print("4) Mostrar tabla de páginas de un proceso")
         print("5) Eliminar un proceso")
-        print("6) Simular acceso a páginas con LRU")
+        print("6) Acceso a páginas con LRU")
         print("7) Mostrar dirección física de una dirección lógica")
         print("0) Salir")
         
