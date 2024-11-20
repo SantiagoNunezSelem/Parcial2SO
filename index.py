@@ -9,8 +9,14 @@ try:
 except ImportError:
     import subprocess
     import sys
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'tabulate'])
-    from tabulate import tabulate
+    try:
+        print("Tabulate no está instalado. Instalando automáticamente...")
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'tabulate'])
+        from tabulate import tabulate
+    except Exception as e:
+        print("No se pudo instalar el módulo tabulate. Verifica tu conexión a internet o permisos.")
+        print("Error:", e)
+        sys.exit(1)
 
 
 # Variables globales
