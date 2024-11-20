@@ -317,17 +317,18 @@ def displayPhysicalAddress():
         else:
             notValidId = False
 
-    typeAddress = int(input("Seleccione el tipo de dirección (1: Binario, 2: Hexadecimal): "))
+    typeAddress = int(input("Seleccione el tipo de dirección (1: Binario, 2: Hexadecimal, 3:decimal): "))
 
     if typeAddress == 1:
         logAddr = input("Ingrese la dirección lógica (binario):")
-        #if not validateBinaryAddress(logAddr, offsetBits + pageBits):
-        #    return
     elif typeAddress == 2:
         hexAddr = input("Ingrese la dirección lógica (hexadecimal):")
         logAddr = bin(int(hexAddr, 16))[2:]     # Convierte hexadecimal a binario y elimina el prefijo '0b'
-        #if not validateBinaryAddress(logAddr, offsetBits + pageBits):
-        #    return
+        print("Direccion logica (binario):",logAddr)
+    elif typeAddress == 3:
+        decAddr = input("Ingrese la dirección lógica (decimal):")
+        logAddr = bin(int(decAddr))[2:]
+        print("Direccion logica (binario):",logAddr)
     else:
         print("Opción de tipo de dirección no válida.")
         return
