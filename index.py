@@ -252,6 +252,7 @@ def getProcessForLRU():
     verifyMemoryData()
 
     print("\nSerie: 1 2 3 4 2 5 6 3 7 5 8")
+    print("Seleccione un proceso con al menos 8 paginas")
 
     notValidId = True
 

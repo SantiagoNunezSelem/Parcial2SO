@@ -76,6 +76,11 @@ class ProcessControlBlock:
 
     def lru(self, series):
         tableFrames = self.getPageTableFrames()
+
+        if(len(tableFrames) == 0):
+            print(f"\nEl proceso con PID:{self.pid} no tiene frames asignados a nignuna pagina dentro de la tabla de paginas")
+            print("Elimine procesos para que se puedan asignar frames libres de forma automatica")
+            return -1
         frameNumbers = self.getFrameNumbers()
         lastUsed = [page.copy() for page in self.pageTable]
         displayTable = [[f"Frame {frame[0]}"] for frame in tableFrames]
