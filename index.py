@@ -28,17 +28,23 @@ def clearTerminal():
 def enterMemoryData(opt):
     global memory_size, os_size, frame_size, num_frames_max, frames, processesControlBlock, processesWaiting
 
+    if(memory_size != 0):
+        print("\n--- Advertencia, si decide cambiar los valores de memoria, se borraran todos los datos ---")
+
     if(opt == 'no back option'):
         memory_size = int(get_positive_integer("Ingrese el tamaño de la memoria real en KB: "))
     else:
         memory_size = int(get_positive_integer_with_cero("Ingrese el tamaño de la memoria real en KB (0 = atras): "))
         if(memory_size == 0):
             return -1
-        
+    
     os_size = get_positive_integer("Ingrese el tamaño del SO en KB: ")
     frame_size = get_positive_integer("Ingrese el tamaño de cada frame en KB: ")
     num_frames_max = get_positive_integer("Ingrese la cantidad de frames a asignar a todos los procesos: ")
     
+    processesControlBlock = []
+    processesWaiting = []
+
     # Inicializar los frames (0 = libre, 's' = asignado al SO, 'u' = asignado al usuario)
     frames_os = math.ceil(os_size / frame_size)
     frames_user = math.ceil((memory_size - os_size) / frame_size)
@@ -290,12 +296,6 @@ def validateBinaryAddress(address, expected_length):
 def displayPhysicalAddress():
     verifyMemoryData()
 
-    offsetBits = math.ceil(math.log2(frame_size * 1024))
-    pageBits = math.ceil(math.log2(memory_size / frame_size))
-
-    print("\nBits desplazamiento:",offsetBits)
-    print("Bits pagina:",pageBits)
-
     notValidId = True
 
     while(notValidId):
@@ -314,38 +314,61 @@ def displayPhysicalAddress():
 
     if typeAddress == 1:
         logAddr = input("Ingrese la dirección lógica (binario):")
-        if not validateBinaryAddress(logAddr, offsetBits + pageBits):
-            return
+        #if not validateBinaryAddress(logAddr, offsetBits + pageBits):
+        #    return
     elif typeAddress == 2:
         hexAddr = input("Ingrese la dirección lógica (hexadecimal):")
         logAddr = bin(int(hexAddr, 16))[2:]     # Convierte hexadecimal a binario y elimina el prefijo '0b'
-        if not validateBinaryAddress(logAddr, offsetBits + pageBits):
-            return
+        #if not validateBinaryAddress(logAddr, offsetBits + pageBits):
+        #    return
     else:
         print("Opción de tipo de dirección no válida.")
         return
-
-    logAddr = logAddr.zfill(pageBits + offsetBits)
-
-    logAddrOffsetBits = logAddr[:offsetBits]     #Get the last n bits of 
-    logAddrPageBits = logAddr[offsetBits:]       #Get the first n bits of 
     
-    print('Bits desplazamiento:',logAddrOffsetBits)
+    offsetBits = math.ceil(math.log2(frame_size * 1024))
+    pageBits = math.ceil(len(logAddr) - offsetBits)
+
+    if(offsetBits <= len(logAddr)):
+        logAddrOffsetBits = logAddr[-offsetBits:]     #Get the last n bits of 
+    else:
+        logAddrOffsetBits = '0' *  (offsetBits - len(logAddr)) + logAddr  #Add 0s to offset at the end
+
+    if(pageBits > 0):
+        logAddrPageBits = logAddr[:pageBits]       #Get the first n bits of 
+    else:
+        logAddrPageBits = '0'
+    
+    print('\nBits desplazamiento:',logAddrOffsetBits)
     print('Bits pagina:',logAddrPageBits)
 
-    decimalOffset = int(logAddrPageBits)
-    
-    frameNumber = processesControlBlock[index].pageTable[decimalOffset]
+    decimalPageIndex = int(logAddrPageBits,2)
 
-    frameBinary = bin(frameNumber)[2:].zfill(pageBits)  # Convert to binary and pad with zeros
-    physicalAddr = frameBinary + logAddrOffsetBits  # pysicalAddress = frame + offset
+    if(len(processesControlBlock[index].pageTable) > decimalPageIndex):
+        page = processesControlBlock[index].pageTable[decimalPageIndex]
 
-    # Convert pyshicalAddr to hex
-    physicalAddrDecimal = int(physicalAddr, 2)
-    physicalAddrHex = hex(physicalAddrDecimal)
+        if(page[1] == 'v'):
+            frame= page[0]
 
-    print(f"Dirección física en binario: {physicalAddr}")
-    print(f"Dirección física en hexadecimal: {physicalAddrHex}")
+            frameBinary = bin(frame)[2:]
+
+            physicalAddr = frameBinary + logAddrOffsetBits  # pysicalAddress = frame + offset
+
+            # Convert pyshicalAddr to hex
+            if physicalAddr.startswith('b'):
+                physicalAddr = physicalAddr[1:]
+            
+            physicalAddrDecimal = int(physicalAddr, 2)
+            physicalAddrHex = hex(physicalAddrDecimal)
+
+            print('\nBits desplazamiento dirreccion fisica:',logAddrOffsetBits)
+            print('Bits pagina direccion fisica:',frameBinary)       
+            print(f"Dirección física en binario: {physicalAddr}")
+            print(f"Dirección física en hexadecimal: {physicalAddrHex}")
+        else:
+            print(f"La pagina indicada no tiene un frame asignado en la tabla de paginas del proceso PID:{pid}")
+    else:
+        print(f"No existe la pagina indicada en la tabla de paginas del proceso PID:{pid}")
+
     
 
 def showMenu():
